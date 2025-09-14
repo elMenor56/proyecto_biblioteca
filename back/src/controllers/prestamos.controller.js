@@ -1,60 +1,83 @@
-const db = require("../config/conexion_db");
+const db = require('../config/conexion_db');
 
-// Listar préstamos (solo Profesor)
-const getPrestamos = async (req, res) => {
-    try {
-        const [rows] = await db.query("SELECT * FROM prestamos");
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+class PrestamosController {
+
+    //Crear prestamo
+    async crearPrestamo(id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista) {
+        try {
+            const [resultado] = await db.query(`
+                INSERT INTO prestamos (id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista)
+                VALUES (?, ?, ?, ?)
+            `, [id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista]);
+
+            return { id_prestamo: resultado.insertId };
+        } catch (error) {
+            throw error;
+        }
     }
-};
 
-// Crear préstamo (Estudiante o Profesor)
-const createPrestamo = async (req, res) => {
-    try {
-        const { id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista } = req.body;
-        const [result] = await db.query(
-        "INSERT INTO prestamos (id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista) VALUES (?, ?, ?, ?)",
-        [id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista]
-        );
-        res.json({ id: result.insertId, id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    //Registrar devolucion
+    async devolverPrestamo(id_prestamo, fecha_dev_real) {
+        try {
+            const [resultado] = await db.query(`
+                UPDATE prestamos
+                SET fecha_dev_real = ?
+                WHERE id_prestamo = ?
+            `, [fecha_dev_real, id_prestamo]);
+
+            return resultado.affectedRows > 0;
+        } catch (error) {
+            throw error;
+        }
     }
-};
 
-// Devolver préstamo (Profesor)
-const devolverPrestamo = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { fecha_dev_real } = req.body;
-        await db.query(
-        "UPDATE prestamos SET fecha_dev_real = ? WHERE id_prestamo = ?",
-        [fecha_dev_real, id]
-        );
-        res.json({ message: "Préstamo devuelto correctamente" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    //Obtener historial de prestamos
+    async obtenerTodos() {
+        try {
+            const [resultados] = await db.query(`
+                SELECT p.id_prestamo,
+                        u.nombre AS usuario,
+                        l.titulo AS libro,
+                        e.codigo_ejemplar,
+                        p.fecha_prestamo,
+                        p.fecha_dev_prevista,
+                        p.fecha_dev_real
+                FROM prestamos p
+                INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+                INNER JOIN ejemplar e ON p.id_ejemplar = e.id_ejemplar
+                INNER JOIN libros l ON e.id_libro = l.id_libro
+                ORDER BY p.fecha_prestamo DESC
+            `);
+
+            return resultados;
+        } catch (error) {
+            throw error;
+        }
     }
-};
 
-// Historial de usuario
-const historialUsuario = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const [rows] = await db.query(
-        `SELECT p.*, l.titulo, e.codigo_ejemplar 
-        FROM prestamos p
-        JOIN ejemplar e ON p.id_ejemplar = e.id_ejemplar
-        JOIN libros l ON e.id_libro = l.id_libro
-        WHERE p.id_usuario = ?`,
-        [id]
-        );
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    //Obtener prestamos activos
+    async obtenerActivos() {
+        try {
+            const [resultados] = await db.query(`
+                SELECT p.id_prestamo,
+                        u.nombre AS usuario,
+                        l.titulo AS libro,
+                        e.codigo_ejemplar,
+                        p.fecha_prestamo,
+                        p.fecha_dev_prevista
+                FROM prestamos p
+                INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+                INNER JOIN ejemplar e ON p.id_ejemplar = e.id_ejemplar
+                INNER JOIN libros l ON e.id_libro = l.id_libro
+                WHERE p.fecha_dev_real IS NULL
+                ORDER BY p.fecha_prestamo ASC
+            `);
+
+            return resultados;
+        } catch (error) {
+            throw error;
+        }
     }
-};
+}
 
-module.exports = { getPrestamos, createPrestamo, devolverPrestamo, historialUsuario };
+module.exports = PrestamosController

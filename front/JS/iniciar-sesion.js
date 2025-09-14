@@ -1,0 +1,74 @@
+//API URL base
+const API_URL = 'http://localhost:3000/api';
+
+//Elementos del DOM
+const loginForm = document.getElementById('loginForm');
+const mensajeDiv = document.getElementById('mensaje');
+
+//Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    loginForm.addEventListener('submit', manejarLogin);
+
+    //Verificar si el usuario ya esta autentificado
+    const usuarioId = localStorage.getItem('usuarioId');
+    if(usuarioId) {
+        //Si ya esta autentificado, redirigir a la pagina principal
+        window.location.href = 'inicio.html';
+    }
+});
+
+//Funcion para manejar el inicio de sesión
+async function manejarLogin(e) {
+    e.preventDefault();
+
+    //Obtener valores del formulario
+    const correo = document.getElementById('email').value;
+    const contrasenia = document.getElementById('clave').value;
+
+    try {
+        //Enviar solicitud de inicio de sesión
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ correo, contrasenia })
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            //Guardar información del usuario en localStorage
+            localStorage.setItem('usuarioId', resultado.usuario.id_usuario);
+            localStorage.setItem('usuarioNombre', resultado.usuario.nombre);
+            localStorage.setItem('usuarioCorreo', resultado.usuario.correo);
+            localStorage.setItem('usuarioTipo', resultado.usuario.tipo);
+
+            mostrarMensaje('Inicio de sesión exitoso. Redirigiendo...', true);
+
+            //Redirigir a la página principal
+            setTimeout(() => {
+                window.location.href = 'inicio.html';
+            }, 1000);
+        } else {
+            mostrarMensaje(resultado.message, false);
+        }
+    } catch (error) {
+        console.error('Error al iniciar sesión:', error);
+        mostrarMensaje('Error al procesar al inicio de sesión. Intente nuevamente.', false);
+    }
+}
+
+//Funcion para mostrar mensajes
+function mostrarMensaje(texto, esExito) {
+    mensajeDiv.textContent = texto;
+    mensajeDiv.style.display = 'block';
+
+    if (esExito) {
+        mensajeDiv.style.backgroundColor = '#d4edda'
+        mensajeDiv.style.color = '#155724';
+    } else {
+        mensajeDiv.style.backgroundColor = '#f8d7da'
+        mensajeDiv.style.color = '#721c24';
+    }
+}

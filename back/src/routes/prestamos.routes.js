@@ -1,46 +1,49 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const PrestamosController = require('../controllers/prestamos.controller');
+const prestamosController = new PrestamosController();
 
-// Controladores de préstamos
-const {
-    getPrestamos,
-    createPrestamo,
-    devolverPrestamo,
-    historialUsuario
-} = require("../controllers/prestamos.controller");
+// Crear préstamo
+router.post('/', async (req, res) => {
+    try {
+        const { id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista } = req.body;
+        const resultado = await prestamosController.crearPrestamo(id_usuario, id_ejemplar, fecha_prestamo, fecha_dev_prevista);
+        res.json({ success: true, prestamo: resultado });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al crear préstamo', error });
+    }
+});
 
-// Middlewares
-const authMiddleware = require("../middlewares/authMiddleware");
-const roleMiddleware = require("../middlewares/roleMiddleware");
+// Registrar devolución
+router.put('/devolver/:id', async (req, res) => {
+    try {
+        const { fecha_dev_real } = req.body;
+        const exito = await prestamosController.devolverPrestamo(req.params.id, fecha_dev_real);
+        if (!exito) return res.status(404).json({ success: false, message: 'Préstamo no encontrado' });
+        res.json({ success: true, message: 'Devolución registrada' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al devolver préstamo', error });
+    }
+});
 
-// Listar todos los préstamos → solo Profesor
-router.get(
-    "/",
-    authMiddleware,
-    roleMiddleware(["Profesor"]),
-    getPrestamos
-);
+// Obtener todos los préstamos
+router.get('/', async (req, res) => {
+    try {
+        const prestamos = await prestamosController.obtenerTodos();
+        res.json(prestamos);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener préstamos', error });
+    }
+});
 
-// Crear préstamo → cualquier usuario autenticado (Estudiante o Profesor)
-router.post(
-    "/",
-    authMiddleware,
-    createPrestamo
-);
-
-// Devolver préstamo → solo Profesor
-router.put(
-    "/devolver/:id",
-    authMiddleware,
-    roleMiddleware(["Profesor"]),
-    devolverPrestamo
-);
-
-// Historial de préstamos de un usuario → Profesor o el mismo usuario
-router.get(
-    "/usuario/:id",
-    authMiddleware,
-    historialUsuario
-);
+// Obtener préstamos activos
+router.get('/activos', async (req, res) => {
+    try {
+        const activos = await prestamosController.obtenerActivos();
+        res.json(activos);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener préstamos activos', error });
+    }
+});
 
 module.exports = router;

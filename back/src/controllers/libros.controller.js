@@ -1,90 +1,66 @@
-const db = require("../config/conexion_db");
+const db = require('../config/conexion_db');
 
-//Listar libros
-const getLibros = async (req, res) => {
-    try {
-        const [rows] = await db.query("SELECT * FROM libros");
-        res.json(rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+class LibrosController {
 
-// Obtener un libro por ID
-const getLibroById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const [rows] = await db.query("SELECT * FROM libros WHERE id_libro = ?", [id]);
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "Libro no encontrado" });
-    }
-
-        res.json(rows[0]);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-//Crear libro (Solo profesor)
-const createLibro = async (req, res) => {
-    try {
-        const { titulo, anio_publicacion, categoria } = req.body;
-        const [result] = await db.query(
-            "INSERT INTO libros (titulo, anio_publicacion, categoria) VALUES (?, ?, ?)",
-            [titulo, anio_publicacion, categoria]
-        );
-        res.json({ id: result.insertId, titulo, anio_publicacion, categoria });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-//Editar Libro (solo profesor)
-const updateLibro = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { titulo, anio_publicacion, categoria } = req.body;
-
-        const [result] = await db.query(
-            "UPDATE libros SET titulo = ?, anio_publicacion = ?, categoria = ? WHERE id_libro = ?",
-            [titulo, anio_publicacion, categoria, id]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Libro no encontrado" });
+    //Obtener todos los libros
+    async obtenerTodos(){
+        try{
+            const[resultados] = await db.query(`
+                SELECT id_libro, titulo, anio_publicacion, categoria
+                FROM libros
+            `);
+            return resultados;
+        } catch (error) {
+            throw error;
         }
-
-        res.json({ id, titulo, anio_publicacion, categoria });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
-};
 
-// Eliminar libro (solo Profesor, validando que no tenga préstamos activos)
-const deleteLibro = async (req, res) => {
-    try {
-        const { id } = req.params;
+    //Obtener libros con ejemplares
+    async obtenerConEjemplares(id){
+        try {
+            const [libro] = await db.query(`
+                SELECT id_libro, titulo, anio_publicacion, categoria
+                FROM libros
+                WHERE id_libro = ?
+            `, [id]);
 
-        // Verificar si el libro tiene préstamos activos
-        const [prestamos] = await db.query(
-            "SELECT * FROM prestamos p JOIN ejemplar e ON p.id_ejemplar = e.id_ejemplar WHERE e.id_libro = ? AND p.fecha_dev_real IS NULL",
-            [id]
-        );
-        if (prestamos.length > 0) {
-            return res.status(400).json({ error: "No se puede eliminar, el libro tiene préstamos activos" });
+            if (libro.length === 0) return null;
+
+            const [ejemplares] = await db.query(`
+                SELECT e.id_ejemplar, e.codigo_ejemplar,
+                    CASE
+                        WHEN p.id_prestamo IS NOT NULL AND p.fecha_dev_real IS NULL
+                        THEN 'No Disponible'
+                        ELSE 'Disponible'
+                    END AS disponibilidad
+                FROM ejemplar e
+                LEFT JOIN prestamos p
+                ON e.id_ejemplar = p.id_ejemplar
+                AND p.fecha_dev_real IS NULL
+                WHERE e.id_libro = ?`
+            ,[id]);
+            return {
+                ...libro[0],
+                ejemplares
+            };
+        } catch (error) {
+            throw error;
         }
-
-        const [result] = await db.query("DELETE FROM libros WHERE id_libro = ?", [id]);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Libro no encontrado" });
-        }
-
-        res.json({ mensaje: "Libro eliminado correctamente" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
-};
 
-module.exports = { getLibros, getLibroById, createLibro, updateLibro, deleteLibro };
+    //Filtro
+    async buscar(filtro) {
+        try {
+            const [resultados] = await db.query(`
+                SELECT id_libro, titulo, anio_publicacion, categoria
+                FROM libros
+                WHERE titulo LIKE ? OR categoria LIKE ?`, [`%${filtro}%`, `%${filtro}%`]);
+            
+            return resultados;
+        } catch (error) {
+            throw error;
+        }
+    }
+}
+
+module.exports = LibrosController;

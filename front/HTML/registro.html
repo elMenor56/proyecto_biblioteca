@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro - Biblioteca</title>
+    <link rel="stylesheet" href="../CSS/registro.css">
+</head>
+<body>
+    <h1>Registro de Usuario</h1>
+
+    <div id="mensaje" style="display: none; margin-bottom: 10px;"></div>
+
+    <form id="registroForm">
+        <div>
+            <label for="nombre">Nombre Completo:</label>
+            <input type="text" id="nombre" required>
+        </div>
+
+    <div>
+        <label for="correo">Correo Electronico:</label>
+        <input type="email" id="correo" required>
+    </div>
+
+    <div>
+        <label for="contrasenia">Contraseña:</label>
+        <input type="password" id="contrasenia" required>
+    </div>
+
+    <div>
+        <label for="tipo">Tipo de usuario:</label>
+        <select id="tipo" required>
+            <option value="">Selecciona</option>
+            <option value="estudiante">Estudiante</option>
+            <option value="profesor">Profesor</option>
+        </select>
+    </div>
+
+        <button type="submit">Registrarse</button>
+    </form>
+
+    <p>¿Ya tienes cuenta? <a href="iniciar-sesion.html">Iniciar sesión</a></p>
+
+    <script src="../JS/registro.js"></script>
+</body>
+</html>

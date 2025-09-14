@@ -1,10 +1,6 @@
 node_modules/
 package-lock.json
 
-#.env (Ignorar el .env evita subir contraseñas y secretos como la del JWT)
-.env.local
-.env.*.local
-
 logs
 *.log
 npm-debug.log*
