@@ -6,9 +6,14 @@ class LibrosController {
     async obtenerTodos(){
         try{
             const[resultados] = await db.query(`
-                SELECT id_libro, titulo, anio_publicacion, categoria
-                FROM libros
-            `);
+            SELECT l.id_libro, l.titulo, l.anio_publicacion, l.categoria,
+                (SELECT COUNT(*) 
+                    FROM ejemplar e 
+                    LEFT JOIN prestamos p 
+                    ON e.id_ejemplar = p.id_ejemplar AND p.fecha_dev_real IS NULL
+                    WHERE e.id_libro = l.id_libro AND p.id_prestamo IS NULL
+                ) AS ejemplares_disponibles
+            FROM libros l`);
             return resultados;
         } catch (error) {
             throw error;

@@ -46,4 +46,16 @@ router.get('/activos', async (req, res) => {
     }
 });
 
+router.post('/crear-por-libro', async (req, res) => {
+    const { id_usuario, id_libro } = req.body;
+    try {
+        const resultado = await prestamosController.crearPrestamoPorLibro(id_usuario, id_libro);
+        if (!resultado.success) return res.status(400).json(resultado);
+        res.json(resultado);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al crear préstamo', error });
+    }
+});
+
+
 module.exports = router;
